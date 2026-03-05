@@ -67,7 +67,7 @@ matplotlib
 PowerShell scripting
 
 7. Running the Project
-git clone https://github.com/Xpheonix0/api-innovate-2026
+git clone https://github.com/Xpheonix0/Z-Engine
 cd api-innovate-2026
 
 pip install -r requirements.txt
