@@ -1,8 +1,5 @@
-#!/usr/bin/env python3
 """
 Z-Engine: Generates, Engineers and Deploys
-Python 3.11+ / PySide6
-FINAL - Fixed All Issues + Secure API Key Handling
 """
 
 import sys
@@ -42,7 +39,7 @@ if not ASI_API_KEY:
         print("WARNING: ASI_API_KEY environment variable not set")
         print("Please set it with: export ASI_API_KEY='your-key-here'")
         # For demo purposes only - remove in production
-        # ASI_API_KEY = "your-key-here"
+     
 
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
