@@ -1,6 +1,8 @@
+#!/usr/bin/env python3
 """
 Z-Engine: Generates, Engineers and Deploys
 Python 3.11+ / PySide6
+FINAL - Fixed All Issues + Secure API Key Handling
 """
 
 import sys
@@ -517,395 +519,6 @@ class ThreeBarChartWidget(QFrame):
 
 
 # ============================================================================
-# SCRIPT DIFF ANALYZER
-# ============================================================================
-
-class ScriptDiffAnalyzer:
-    """Analyzes differences between original and refined plans"""
-    
-    @staticmethod
-    def analyze_diffs(original_tasks: List[OptimizationTask], 
-                     refined_tasks: List[OptimizationTask]) -> Dict[str, Any]:
-        """Analyze differences between original and refined task lists"""
-        
-        # Create sets for comparison
-        original_set = {t.id: t for t in original_tasks}
-        refined_set = {t.id: t for t in refined_tasks}
-        
-        # Find removed tasks (in original but not in refined)
-        removed_tasks = []
-        for task_id, task in original_set.items():
-            if task_id not in refined_set:
-                removed_tasks.append(task)
-        
-        # Find added tasks (in refined but not in original)
-        added_tasks = []
-        for task_id, task in refined_set.items():
-            if task_id not in original_set:
-                added_tasks.append(task)
-        
-        # Find modified tasks (same id but different risk/command)
-        modified_tasks = []
-        for task_id, original_task in original_set.items():
-            if task_id in refined_set:
-                refined_task = refined_set[task_id]
-                if (original_task.risk != refined_task.risk or 
-                    original_task.command != refined_task.command):
-                    modified_tasks.append({
-                        'original': original_task,
-                        'refined': refined_task,
-                        'risk_changed': original_task.risk != refined_task.risk,
-                        'command_changed': original_task.command != refined_task.command
-                    })
-        
-        # Calculate risk reduction
-        original_high_risk = sum(1 for t in original_tasks if t.risk in [RiskLevel.HIGH, RiskLevel.CRITICAL])
-        refined_high_risk = sum(1 for t in refined_tasks if t.risk in [RiskLevel.HIGH, RiskLevel.CRITICAL])
-        risk_reduction = ((original_high_risk - refined_high_risk) / max(1, original_high_risk)) * 100 if original_high_risk > 0 else 0
-        
-        return {
-            'removed_tasks': removed_tasks,
-            'added_tasks': added_tasks,
-            'modified_tasks': modified_tasks,
-            'original_count': len(original_tasks),
-            'refined_count': len(refined_tasks),
-            'original_high_risk': original_high_risk,
-            'refined_high_risk': refined_high_risk,
-            'risk_reduction': round(risk_reduction, 1)
-        }
-
-
-# ============================================================================
-# SCRIPT DIFF WIDGET
-# ============================================================================
-
-class ScriptDiffWidget(QFrame):
-    """Widget to show differences between original and refined plans"""
-    
-    def __init__(self):
-        super().__init__()
-        self.diff_data = None
-        self.setup_ui()
-        self.hide()
-    
-    def setup_ui(self):
-        self.setFrameStyle(QFrame.Shape.Box)
-        self.setStyleSheet("""
-            QFrame {
-                border: 2px solid #00ffff;
-                border-radius: 5px;
-                background: #001122;
-                margin: 5px;
-            }
-            QScrollArea {
-                border: none;
-                background: transparent;
-            }
-        """)
-        
-        layout = QVBoxLayout()
-        
-        # Header
-        header = QLabel("Plan Comparison: Original vs Refined")
-        header.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        header.setStyleSheet("color: #00ffff;")
-        layout.addWidget(header)
-        
-        # Stats summary
-        self.stats_label = QLabel()
-        self.stats_label.setWordWrap(True)
-        self.stats_label.setStyleSheet("color: #88ff88; padding: 5px; background: #0a1a0a; border-radius: 3px;")
-        layout.addWidget(self.stats_label)
-        
-        # Scroll area for diff details
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setStyleSheet("border: 1px solid #335533; border-radius: 3px;")
-        
-        self.content = QWidget()
-        self.content_layout = QVBoxLayout(self.content)
-        scroll.setWidget(self.content)
-        layout.addWidget(scroll)
-        
-        self.setLayout(layout)
-    
-    def update_diff(self, original_tasks: List[OptimizationTask], 
-                   refined_tasks: List[OptimizationTask]):
-        """Update the diff view with new data"""
-        self.diff_data = ScriptDiffAnalyzer.analyze_diffs(original_tasks, refined_tasks)
-        
-        # Update stats
-        stats_text = (
-            f"Original Plan: {self.diff_data['original_count']} tasks "
-            f"({self.diff_data['original_high_risk']} high risk)\n"
-            f"Refined Plan: {self.diff_data['refined_count']} tasks "
-            f"({self.diff_data['refined_high_risk']} high risk)\n"
-            f"Risk Reduction: {self.diff_data['risk_reduction']}%"
-        )
-        self.stats_label.setText(stats_text)
-        
-        # Clear previous content
-        self._clear_layout(self.content_layout)
-        
-        # Add removed tasks section
-        if self.diff_data['removed_tasks']:
-            removed_header = QLabel("❌ Removed Risky Tasks")
-            removed_header.setStyleSheet("color: #ff8800; font-weight: bold; margin-top: 5px;")
-            self.content_layout.addWidget(removed_header)
-            
-            for task in self.diff_data['removed_tasks'][:5]:
-                task_label = QLabel(f"  • {task.description} ({task.risk.value.upper()})")
-                task_label.setWordWrap(True)
-                task_label.setStyleSheet("color: #ffaa00;")
-                self.content_layout.addWidget(task_label)
-            
-            if len(self.diff_data['removed_tasks']) > 5:
-                more = QLabel(f"  ... and {len(self.diff_data['removed_tasks']) - 5} more")
-                more.setStyleSheet("color: #888888; font-style: italic;")
-                self.content_layout.addWidget(more)
-        
-        # Add added tasks section
-        if self.diff_data['added_tasks']:
-            added_header = QLabel("✅ Added Safe Tasks")
-            added_header.setStyleSheet("color: #88ff88; font-weight: bold; margin-top: 10px;")
-            self.content_layout.addWidget(added_header)
-            
-            for task in self.diff_data['added_tasks'][:5]:
-                task_label = QLabel(f"  • {task.description} ({task.risk.value.upper()})")
-                task_label.setWordWrap(True)
-                task_label.setStyleSheet("color: #88ff88;")
-                self.content_layout.addWidget(task_label)
-            
-            if len(self.diff_data['added_tasks']) > 5:
-                more = QLabel(f"  ... and {len(self.diff_data['added_tasks']) - 5} more")
-                more.setStyleSheet("color: #888888; font-style: italic;")
-                self.content_layout.addWidget(more)
-        
-        # Add modified tasks section
-        if self.diff_data['modified_tasks']:
-            modified_header = QLabel("🔄 Modified Tasks")
-            modified_header.setStyleSheet("color: #ffff00; font-weight: bold; margin-top: 10px;")
-            self.content_layout.addWidget(modified_header)
-            
-            for mod in self.diff_data['modified_tasks'][:3]:
-                text = f"  • {mod['original'].description}\n    Risk: {mod['original'].risk.value.upper()} → {mod['refined'].risk.value.upper()}"
-                task_label = QLabel(text)
-                task_label.setWordWrap(True)
-                task_label.setStyleSheet("color: #ffff88;")
-                self.content_layout.addWidget(task_label)
-        
-        self.content_layout.addStretch()
-        self.show()
-    
-    def _clear_layout(self, layout):
-        """Clear all widgets from a layout"""
-        while layout.count():
-            item = layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-
-
-# ============================================================================
-# STRATEGY COMPARISON WIDGET
-# ============================================================================
-
-class StrategyComparisonWidget(QFrame):
-    """Widget to display and compare different optimization strategies"""
-    
-    def __init__(self):
-        super().__init__()
-        self.strategies = []
-        self.selected_index = -1
-        self.setup_ui()
-        self.hide()
-    
-    def setup_ui(self):
-        self.setFrameStyle(QFrame.Shape.Box)
-        self.setStyleSheet("""
-            QFrame {
-                border: 2px solid #00ffff;
-                border-radius: 5px;
-                background: #0a1a2a;
-                margin: 5px;
-            }
-            QFrame#strategy_card {
-                border: 2px solid #335533;
-                border-radius: 5px;
-                background: #1a2a1a;
-                margin: 2px;
-                padding: 8px;
-            }
-            QFrame#strategy_card:hover {
-                border: 2px solid #88ff88;
-                background: #1d3a1d;
-            }
-            QFrame#strategy_card[selected="true"] {
-                border: 4px solid #00ffff;
-                background: #0a2a3a;
-            }
-        """)
-        
-        layout = QVBoxLayout()
-        
-        # Header
-        header = QLabel("Strategy Comparison")
-        header.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-        header.setStyleSheet("color: #00ffff;")
-        layout.addWidget(header)
-        
-        # Subtitle
-        subtitle = QLabel("AI evaluated multiple approaches and selected optimal balance")
-        subtitle.setStyleSheet("color: #88ff88; font-style: italic; margin-bottom: 10px;")
-        layout.addWidget(subtitle)
-        
-        # Strategy cards container
-        self.cards_layout = QVBoxLayout()
-        layout.addLayout(self.cards_layout)
-        
-        # Reasoning
-        self.reasoning_label = QLabel()
-        self.reasoning_label.setWordWrap(True)
-        self.reasoning_label.setStyleSheet("color: #ffff88; padding: 10px; border-top: 1px solid #335533; margin-top: 10px;")
-        layout.addWidget(self.reasoning_label)
-        
-        self.setLayout(layout)
-    
-    def update_strategies(self, strategies: List[StrategyOption], selected_index: int, reasoning: str):
-        """Update the widget with new strategy data"""
-        self.strategies = strategies
-        self.selected_index = selected_index
-        
-        # Clear old cards
-        self._clear_layout(self.cards_layout)
-        
-        # Create strategy cards
-        for i, strategy in enumerate(strategies):
-            card = self._create_strategy_card(strategy, i == selected_index)
-            self.cards_layout.addWidget(card)
-        
-        # Update reasoning
-        self.reasoning_label.setText(f"AI Reasoning: {reasoning}")
-        self.show()
-    
-    def _create_strategy_card(self, strategy: StrategyOption, is_selected: bool):
-        """Create a card for a single strategy"""
-        card = QFrame()
-        card.setObjectName("strategy_card")
-        card.setProperty("selected", is_selected)
-        card.setFrameStyle(QFrame.Shape.Box)
-        
-        # Style based on selection
-        if is_selected:
-            card.setStyleSheet("""
-                QFrame {
-                    border: 4px solid #00ffff;
-                    border-radius: 5px;
-                    background: #0a2a3a;
-                    margin: 2px;
-                    padding: 8px;
-                }
-            """)
-        
-        layout = QVBoxLayout()
-        
-        # Header with name and selection indicator
-        header_layout = QHBoxLayout()
-        
-        name = QLabel(strategy.name)
-        name.setFont(QFont("Arial", 11, QFont.Weight.Bold))
-        name.setStyleSheet("color: white;")
-        header_layout.addWidget(name)
-        
-        if is_selected:
-            selected_badge = QLabel("✓ SELECTED")
-            selected_badge.setStyleSheet("""
-                background: #00ffff;
-                color: black;
-                font-weight: bold;
-                padding: 3px 8px;
-                border-radius: 3px;
-            """)
-            header_layout.addWidget(selected_badge)
-        
-        header_layout.addStretch()
-        layout.addLayout(header_layout)
-        
-        # Stats grid
-        stats_layout = QGridLayout()
-        
-        # Gain
-        gain_label = QLabel("Gain:")
-        gain_label.setStyleSheet("color: #88ff88;")
-        stats_layout.addWidget(gain_label, 0, 0)
-        
-        gain_value = QLabel(f"+{strategy.gain}")
-        gain_value.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-        gain_value.setStyleSheet("color: #00ff00;")
-        stats_layout.addWidget(gain_value, 0, 1)
-        
-        # Risk
-        risk_label = QLabel("Risk:")
-        risk_label.setStyleSheet("color: #ff8888;")
-        stats_layout.addWidget(risk_label, 0, 2)
-        
-        # Color-code risk level
-        risk_color = {
-            "Very Low": "#88ff88",
-            "Low": "#88ff88",
-            "Medium": "#ffff00",
-            "High": "#ff8800",
-            "Critical": "#ff0000"
-        }.get(strategy.risk_level, "#ffffff")
-        
-        risk_value = QLabel(strategy.risk_level)
-        risk_value.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-        risk_value.setStyleSheet(f"color: {risk_color};")
-        stats_layout.addWidget(risk_value, 0, 3)
-        
-        # Confidence
-        confidence_label = QLabel("Confidence:")
-        confidence_label.setStyleSheet("color: #8888ff;")
-        stats_layout.addWidget(confidence_label, 1, 0)
-        
-        confidence_value = QLabel(f"{strategy.confidence}%")
-        confidence_value.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-        confidence_value.setStyleSheet("color: #8888ff;")
-        stats_layout.addWidget(confidence_value, 1, 1)
-        
-        # Ratio
-        ratio_label = QLabel("Gain/Risk:")
-        ratio_label.setStyleSheet("color: #ff88ff;")
-        stats_layout.addWidget(ratio_label, 1, 2)
-        
-        ratio_value = QLabel(f"{strategy.stability_risk_ratio:.2f}")
-        ratio_value.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-        ratio_value.setStyleSheet("color: #ff88ff;")
-        stats_layout.addWidget(ratio_value, 1, 3)
-        
-        stats_layout.setColumnStretch(4, 1)
-        layout.addLayout(stats_layout)
-        
-        # Description
-        if strategy.description:
-            desc = QLabel(strategy.description)
-            desc.setWordWrap(True)
-            desc.setStyleSheet("color: #cccccc; font-style: italic; padding: 5px;")
-            layout.addWidget(desc)
-        
-        card.setLayout(layout)
-        return card
-    
-    def _clear_layout(self, layout):
-        """Clear all widgets from a layout"""
-        while layout.count():
-            item = layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-
-
-# ============================================================================
 # DATA CLASSES
 # ============================================================================
 
@@ -1080,6 +693,395 @@ class OptimizationCategory:
         self.reasoning = reasoning
         self.category_impact = category_impact
         self.strategic_importance = strategic_importance
+
+
+# ============================================================================
+# SCRIPT DIFF ANALYZER
+# ============================================================================
+
+class ScriptDiffAnalyzer:
+    """Analyzes differences between original and refined plans"""
+    
+    @staticmethod
+    def analyze_diffs(original_tasks: List[OptimizationTask], 
+                     refined_tasks: List[OptimizationTask]) -> Dict[str, Any]:
+        """Analyze differences between original and refined task lists"""
+        
+        # Create sets for comparison
+        original_set = {t.id: t for t in original_tasks}
+        refined_set = {t.id: t for t in refined_tasks}
+        
+        # Find removed tasks (in original but not in refined)
+        removed_tasks = []
+        for task_id, task in original_set.items():
+            if task_id not in refined_set:
+                removed_tasks.append(task)
+        
+        # Find added tasks (in refined but not in original)
+        added_tasks = []
+        for task_id, task in refined_set.items():
+            if task_id not in original_set:
+                added_tasks.append(task)
+        
+        # Find modified tasks (same id but different risk/command)
+        modified_tasks = []
+        for task_id, original_task in original_set.items():
+            if task_id in refined_set:
+                refined_task = refined_set[task_id]
+                if (original_task.risk != refined_task.risk or 
+                    original_task.command != refined_task.command):
+                    modified_tasks.append({
+                        'original': original_task,
+                        'refined': refined_task,
+                        'risk_changed': original_task.risk != refined_task.risk,
+                        'command_changed': original_task.command != refined_task.command
+                    })
+        
+        # Calculate risk reduction
+        original_high_risk = sum(1 for t in original_tasks if t.risk in [RiskLevel.HIGH, RiskLevel.CRITICAL])
+        refined_high_risk = sum(1 for t in refined_tasks if t.risk in [RiskLevel.HIGH, RiskLevel.CRITICAL])
+        risk_reduction = ((original_high_risk - refined_high_risk) / max(1, original_high_risk)) * 100 if original_high_risk > 0 else 0
+        
+        return {
+            'removed_tasks': removed_tasks,
+            'added_tasks': added_tasks,
+            'modified_tasks': modified_tasks,
+            'original_count': len(original_tasks),
+            'refined_count': len(refined_tasks),
+            'original_high_risk': original_high_risk,
+            'refined_high_risk': refined_high_risk,
+            'risk_reduction': round(risk_reduction, 1)
+        }
+
+
+# ============================================================================
+# SCRIPT DIFF WIDGET
+# ============================================================================
+
+class ScriptDiffWidget(QFrame):
+    """Widget to show differences between original and refined plans"""
+    
+    def __init__(self):
+        super().__init__()
+        self.diff_data = None
+        self.setup_ui()
+        self.hide()
+    
+    def setup_ui(self):
+        self.setFrameStyle(QFrame.Shape.Box)
+        self.setStyleSheet("""
+            QFrame {
+                border: 2px solid #00ffff;
+                border-radius: 5px;
+                background: #001122;
+                margin: 5px;
+            }
+            QScrollArea {
+                border: none;
+                background: transparent;
+            }
+        """)
+        
+        layout = QVBoxLayout()
+        
+        # Header
+        header = QLabel("Plan Comparison: Original vs Refined")
+        header.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        header.setStyleSheet("color: #00ffff;")
+        layout.addWidget(header)
+        
+        # Stats summary
+        self.stats_label = QLabel()
+        self.stats_label.setWordWrap(True)
+        self.stats_label.setStyleSheet("color: #88ff88; padding: 5px; background: #0a1a0a; border-radius: 3px;")
+        layout.addWidget(self.stats_label)
+        
+        # Scroll area for diff details
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll.setStyleSheet("border: 1px solid #335533; border-radius: 3px;")
+        
+        self.content = QWidget()
+        self.content_layout = QVBoxLayout(self.content)
+        scroll.setWidget(self.content)
+        layout.addWidget(scroll)
+        
+        self.setLayout(layout)
+    
+    def update_diff(self, original_tasks: List[OptimizationTask], 
+                   refined_tasks: List[OptimizationTask]):
+        """Update the diff view with new data"""
+        self.diff_data = ScriptDiffAnalyzer.analyze_diffs(original_tasks, refined_tasks)
+        
+        # Update stats
+        stats_text = (
+            f"Original Plan: {self.diff_data['original_count']} tasks "
+            f"({self.diff_data['original_high_risk']} high risk)\n"
+            f"Refined Plan: {self.diff_data['refined_count']} tasks "
+            f"({self.diff_data['refined_high_risk']} high risk)\n"
+            f"Risk Reduction: {self.diff_data['risk_reduction']}%"
+        )
+        self.stats_label.setText(stats_text)
+        
+        # Clear previous content
+        self._clear_layout(self.content_layout)
+        
+        # Add removed tasks section
+        if self.diff_data['removed_tasks']:
+            removed_header = QLabel("Removed Risky Tasks")
+            removed_header.setStyleSheet("color: #ff8800; font-weight: bold; margin-top: 5px;")
+            self.content_layout.addWidget(removed_header)
+            
+            for task in self.diff_data['removed_tasks'][:5]:
+                task_label = QLabel(f"  - {task.description} ({task.risk.value.upper()})")
+                task_label.setWordWrap(True)
+                task_label.setStyleSheet("color: #ffaa00;")
+                self.content_layout.addWidget(task_label)
+            
+            if len(self.diff_data['removed_tasks']) > 5:
+                more = QLabel(f"  ... and {len(self.diff_data['removed_tasks']) - 5} more")
+                more.setStyleSheet("color: #888888; font-style: italic;")
+                self.content_layout.addWidget(more)
+        
+        # Add added tasks section
+        if self.diff_data['added_tasks']:
+            added_header = QLabel("Added Safe Tasks")
+            added_header.setStyleSheet("color: #88ff88; font-weight: bold; margin-top: 10px;")
+            self.content_layout.addWidget(added_header)
+            
+            for task in self.diff_data['added_tasks'][:5]:
+                task_label = QLabel(f"  - {task.description} ({task.risk.value.upper()})")
+                task_label.setWordWrap(True)
+                task_label.setStyleSheet("color: #88ff88;")
+                self.content_layout.addWidget(task_label)
+            
+            if len(self.diff_data['added_tasks']) > 5:
+                more = QLabel(f"  ... and {len(self.diff_data['added_tasks']) - 5} more")
+                more.setStyleSheet("color: #888888; font-style: italic;")
+                self.content_layout.addWidget(more)
+        
+        # Add modified tasks section
+        if self.diff_data['modified_tasks']:
+            modified_header = QLabel("Modified Tasks")
+            modified_header.setStyleSheet("color: #ffff00; font-weight: bold; margin-top: 10px;")
+            self.content_layout.addWidget(modified_header)
+            
+            for mod in self.diff_data['modified_tasks'][:3]:
+                text = f"  - {mod['original'].description}\n    Risk: {mod['original'].risk.value.upper()} -> {mod['refined'].risk.value.upper()}"
+                task_label = QLabel(text)
+                task_label.setWordWrap(True)
+                task_label.setStyleSheet("color: #ffff88;")
+                self.content_layout.addWidget(task_label)
+        
+        self.content_layout.addStretch()
+        self.show()
+    
+    def _clear_layout(self, layout):
+        """Clear all widgets from a layout"""
+        while layout.count():
+            item = layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+
+# ============================================================================
+# STRATEGY COMPARISON WIDGET
+# ============================================================================
+
+class StrategyComparisonWidget(QFrame):
+    """Widget to display and compare different optimization strategies"""
+    
+    def __init__(self):
+        super().__init__()
+        self.strategies = []
+        self.selected_index = -1
+        self.setup_ui()
+        self.hide()
+    
+    def setup_ui(self):
+        self.setFrameStyle(QFrame.Shape.Box)
+        self.setStyleSheet("""
+            QFrame {
+                border: 2px solid #00ffff;
+                border-radius: 5px;
+                background: #0a1a2a;
+                margin: 5px;
+            }
+            QFrame#strategy_card {
+                border: 2px solid #335533;
+                border-radius: 5px;
+                background: #1a2a1a;
+                margin: 2px;
+                padding: 8px;
+            }
+            QFrame#strategy_card:hover {
+                border: 2px solid #88ff88;
+                background: #1d3a1d;
+            }
+            QFrame#strategy_card[selected="true"] {
+                border: 4px solid #00ffff;
+                background: #0a2a3a;
+            }
+        """)
+        
+        layout = QVBoxLayout()
+        
+        # Header
+        header = QLabel("Strategy Comparison")
+        header.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        header.setStyleSheet("color: #00ffff;")
+        layout.addWidget(header)
+        
+        # Subtitle
+        subtitle = QLabel("AI evaluated multiple approaches and selected optimal balance")
+        subtitle.setStyleSheet("color: #88ff88; font-style: italic; margin-bottom: 10px;")
+        layout.addWidget(subtitle)
+        
+        # Strategy cards container
+        self.cards_layout = QVBoxLayout()
+        layout.addLayout(self.cards_layout)
+        
+        # Reasoning
+        self.reasoning_label = QLabel()
+        self.reasoning_label.setWordWrap(True)
+        self.reasoning_label.setStyleSheet("color: #ffff88; padding: 10px; border-top: 1px solid #335533; margin-top: 10px;")
+        layout.addWidget(self.reasoning_label)
+        
+        self.setLayout(layout)
+    
+    def update_strategies(self, strategies: List[StrategyOption], selected_index: int, reasoning: str):
+        """Update the widget with new strategy data"""
+        self.strategies = strategies
+        self.selected_index = selected_index
+        
+        # Clear old cards
+        self._clear_layout(self.cards_layout)
+        
+        # Create strategy cards
+        for i, strategy in enumerate(strategies):
+            card = self._create_strategy_card(strategy, i == selected_index)
+            self.cards_layout.addWidget(card)
+        
+        # Update reasoning
+        self.reasoning_label.setText(f"AI Reasoning: {reasoning}")
+        self.show()
+    
+    def _create_strategy_card(self, strategy: StrategyOption, is_selected: bool):
+        """Create a card for a single strategy"""
+        card = QFrame()
+        card.setObjectName("strategy_card")
+        card.setProperty("selected", is_selected)
+        card.setFrameStyle(QFrame.Shape.Box)
+        
+        # Style based on selection
+        if is_selected:
+            card.setStyleSheet("""
+                QFrame {
+                    border: 4px solid #00ffff;
+                    border-radius: 5px;
+                    background: #0a2a3a;
+                    margin: 2px;
+                    padding: 8px;
+                }
+            """)
+        
+        layout = QVBoxLayout()
+        
+        # Header with name and selection indicator
+        header_layout = QHBoxLayout()
+        
+        name = QLabel(strategy.name)
+        name.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        name.setStyleSheet("color: white;")
+        header_layout.addWidget(name)
+        
+        if is_selected:
+            selected_badge = QLabel("SELECTED")
+            selected_badge.setStyleSheet("""
+                background: #00ffff;
+                color: black;
+                font-weight: bold;
+                padding: 3px 8px;
+                border-radius: 3px;
+            """)
+            header_layout.addWidget(selected_badge)
+        
+        header_layout.addStretch()
+        layout.addLayout(header_layout)
+        
+        # Stats grid
+        stats_layout = QGridLayout()
+        
+        # Gain
+        gain_label = QLabel("Gain:")
+        gain_label.setStyleSheet("color: #88ff88;")
+        stats_layout.addWidget(gain_label, 0, 0)
+        
+        gain_value = QLabel(f"+{strategy.gain}")
+        gain_value.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        gain_value.setStyleSheet("color: #00ff00;")
+        stats_layout.addWidget(gain_value, 0, 1)
+        
+        # Risk
+        risk_label = QLabel("Risk:")
+        risk_label.setStyleSheet("color: #ff8888;")
+        stats_layout.addWidget(risk_label, 0, 2)
+        
+        # Color-code risk level
+        risk_color = {
+            "Very Low": "#88ff88",
+            "Low": "#88ff88",
+            "Medium": "#ffff00",
+            "High": "#ff8800",
+            "Critical": "#ff0000"
+        }.get(strategy.risk_level, "#ffffff")
+        
+        risk_value = QLabel(strategy.risk_level)
+        risk_value.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        risk_value.setStyleSheet(f"color: {risk_color};")
+        stats_layout.addWidget(risk_value, 0, 3)
+        
+        # Confidence
+        confidence_label = QLabel("Confidence:")
+        confidence_label.setStyleSheet("color: #8888ff;")
+        stats_layout.addWidget(confidence_label, 1, 0)
+        
+        confidence_value = QLabel(f"{strategy.confidence}%")
+        confidence_value.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        confidence_value.setStyleSheet("color: #8888ff;")
+        stats_layout.addWidget(confidence_value, 1, 1)
+        
+        # Ratio
+        ratio_label = QLabel("Gain/Risk:")
+        ratio_label.setStyleSheet("color: #ff88ff;")
+        stats_layout.addWidget(ratio_label, 1, 2)
+        
+        ratio_value = QLabel(f"{strategy.stability_risk_ratio:.2f}")
+        ratio_value.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        ratio_value.setStyleSheet("color: #ff88ff;")
+        stats_layout.addWidget(ratio_value, 1, 3)
+        
+        stats_layout.setColumnStretch(4, 1)
+        layout.addLayout(stats_layout)
+        
+        # Description
+        if strategy.description:
+            desc = QLabel(strategy.description)
+            desc.setWordWrap(True)
+            desc.setStyleSheet("color: #cccccc; font-style: italic; padding: 5px;")
+            layout.addWidget(desc)
+        
+        card.setLayout(layout)
+        return card
+    
+    def _clear_layout(self, layout):
+        """Clear all widgets from a layout"""
+        while layout.count():
+            item = layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
 
 
 # ============================================================================
@@ -1284,7 +1286,7 @@ class ScriptGenerator:
             "}",
             "",
             "# Safety confirmation",
-            "Write-Host '⚠️  This script will make system changes' -ForegroundColor Yellow",
+            "Write-Host 'This script will make system changes' -ForegroundColor Yellow",
             "$confirmation = Read-Host 'Continue? (y/N)'",
             "if ($confirmation -ne 'y') { exit 0 }",
             "",
@@ -1333,33 +1335,33 @@ class ScriptGenerator:
                 cmd_to_use = task.get_execution_command(safe_mode)
                 
                 if not is_safe and safe_mode:
-                    lines.append(f"# ⚠️  Command modified for safety: {safety_note}")
+                    lines.append(f"# Command modified for safety: {safety_note}")
                 
                 # Add command with appropriate safety level
                 if cmd_risk in ["high", "critical"] and safe_mode:
                     # High-risk commands require confirmation
-                    lines.append(f"Write-Host '  ⚠️  {task.description} (High Risk)' -ForegroundColor Yellow")
+                    lines.append(f"Write-Host '  {task.description} (High Risk)' -ForegroundColor Yellow")
                     lines.append(f"Write-Host '      {safety_note}' -ForegroundColor Yellow")
                     lines.append(f"$confirm = Read-Host '    Proceed with this high-risk operation? (y/N)'")
                     lines.append(f"if ($confirm -eq 'y') {{")
                     lines.append(f"    try {{")
                     lines.append(f"        {cmd_to_use}")
-                    lines.append(f"        Write-Host '    ✅ Completed' -ForegroundColor Green")
+                    lines.append(f"        Write-Host '    Completed' -ForegroundColor Green")
                     lines.append(f"    }} catch {{")
-                    lines.append(f"        Write-Host '    ❌ Failed: $_' -ForegroundColor Red")
+                    lines.append(f"        Write-Host '    Failed: $_' -ForegroundColor Red")
                     lines.append(f"        Write-Warning 'Error in {task.description}'")
                     lines.append(f"    }}")
                     lines.append(f"}} else {{")
-                    lines.append(f"    Write-Host '    ⏭️  Skipped' -ForegroundColor Gray")
+                    lines.append(f"    Write-Host '    Skipped' -ForegroundColor Gray")
                     lines.append(f"}}")
                 else:
                     # Standard execution with try/catch
-                    lines.append(f"Write-Host '  → {task.description}' -ForegroundColor Gray")
+                    lines.append(f"Write-Host '  -> {task.description}' -ForegroundColor Gray")
                     lines.append(f"try {{")
                     lines.append(f"    {cmd_to_use}")
-                    lines.append(f"    Write-Host '    ✅ Completed' -ForegroundColor Green")
+                    lines.append(f"    Write-Host '    Completed' -ForegroundColor Green")
                     lines.append(f"}} catch {{")
-                    lines.append(f"    Write-Host '    ❌ Failed: $_' -ForegroundColor Red")
+                    lines.append(f"    Write-Host '    Failed: $_' -ForegroundColor Red")
                     lines.append(f"    Write-Warning 'Error in {task.description}'")
                     lines.append(f"}}")
         
@@ -1426,7 +1428,7 @@ class ScriptRunner:
             parent_widget,
             "Run Optimization Script",
             "This will execute system optimization commands with administrator privileges.\n\n"
-            "⚠️  Running this script will modify your system settings.\n"
+            "Running this script will modify your system settings.\n"
             "   A UAC prompt will appear - click Yes to continue.\n\n"
             "Continue?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
@@ -1712,8 +1714,8 @@ class ScriptPreviewWidget(QFrame):
                     exe_missing.append((task.description, exe))
         
         if exe_missing:
-            warning_text = "⚠️  MISSING EXECUTABLES:\n" + "\n".join([
-                f"  • {desc} requires {exe}" for desc, exe in exe_missing
+            warning_text = "MISSING EXECUTABLES:\n" + "\n".join([
+                f"  - {desc} requires {exe}" for desc, exe in exe_missing
             ])
             self.exe_warning.setText(warning_text)
             self.exe_warning.show()
@@ -1721,15 +1723,15 @@ class ScriptPreviewWidget(QFrame):
             self.exe_warning.hide()
         
         if unsafe_commands and not safe_mode:
-            warning_text = "⚠️  UNSAFE COMMANDS DETECTED:\n" + "\n".join([
-                f"  • {desc} ({risk} risk)" for desc, risk, _ in unsafe_commands
+            warning_text = "UNSAFE COMMANDS DETECTED:\n" + "\n".join([
+                f"  - {desc} ({risk} risk)" for desc, risk, _ in unsafe_commands
             ])
             self.safety_warning.setText(warning_text)
             self.safety_warning.show()
             self.status_label.setText(f"{len(tasks)} tasks selected ({len(unsafe_commands)} unsafe) - Enable Safe Mode")
             self.status_label.setStyleSheet("color: #ff0000; font-style: italic; font-weight: bold;")
         elif unsafe_commands and safe_mode:
-            self.safety_warning.setText(f"⚠️  {len(unsafe_commands)} unsafe commands will be modified for safety")
+            self.safety_warning.setText(f"{len(unsafe_commands)} unsafe commands will be modified for safety")
             self.safety_warning.show()
             self.status_label.setText(f"{len(tasks)} tasks selected (safe mode active)")
             self.status_label.setStyleSheet("color: #88ff88; font-style: italic;")
@@ -2395,7 +2397,7 @@ class FlowIndicator(QFrame):
             
             # Arrow between stages (except last)
             if i < len(self.stages) - 1:
-                arrow = QLabel("→")
+                arrow = QLabel("->")
                 arrow.setStyleSheet("color: #335533; font-size: 16px; font-weight: bold;")
                 layout.addWidget(arrow)
         
@@ -2600,7 +2602,7 @@ Return JSON exactly like this example, with values based on the actual data:
     "recommendations": ["Reduce startup programs", "Increase RAM"]
 }}"""
         
-        return self._call_api(prompt, max_tokens=1000, pass_name="1: Scan → Analyze")
+        return self._call_api(prompt, max_tokens=1000, pass_name="1: Scan -> Analyze")
     
     def get_strategic_insight(self, snapshot: Dict[str, Any], metrics: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         compressed = {
@@ -2623,7 +2625,7 @@ Return JSON exactly like this example:
     "expected_gain_range": {{"min": 8, "max": 15}}
 }}"""
         
-        return self._call_api(prompt, max_tokens=800, pass_name="2: Analyze → Strategize")
+        return self._call_api(prompt, max_tokens=800, pass_name="2: Analyze -> Strategize")
     
     def generate_plan(self, snapshot: Dict[str, Any], metrics: Dict[str, Any], 
                       strategic_insight: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
@@ -2662,7 +2664,7 @@ Return EXACT JSON with this structure. Include all 8 domains with 3 tasks each:
     "projected_stability": 85
 }}"""
         
-        result = self._call_api(prompt, max_tokens=3000, temperature=0.4, pass_name="3: Strategize → Plan")
+        result = self._call_api(prompt, max_tokens=3000, temperature=0.4, pass_name="3: Strategize -> Plan")
         
         if result is None:
             return self._create_default_plan(compressed, priority)
@@ -2764,7 +2766,7 @@ Return JSON with this structure:
     ]
 }}"""
         
-        return self._call_api(prompt, max_tokens=1500, pass_name="4: Plan → Review")
+        return self._call_api(prompt, max_tokens=1500, pass_name="4: Plan -> Review")
     
     def regenerate_plan(self, snapshot: Dict[str, Any], metrics: Dict[str, Any], 
                         critique: Dict[str, Any], original_projected: int = None) -> Optional[Dict[str, Any]]:
@@ -2782,7 +2784,7 @@ Critique risks: {critique.get('over_optimization_risks', [])[:2]}
 
 Return JSON with categories, projected_stability, risk_reduction_percent, key_improvements."""
         
-        result = self._call_api(prompt, max_tokens=2500, temperature=0.4, pass_name="5: Review → Refine")
+        result = self._call_api(prompt, max_tokens=2500, temperature=0.4, pass_name="5: Review -> Refine")
         
         if result is None:
             return {
@@ -3470,7 +3472,7 @@ class RiskDeltaWidget(QFrame):
         
         gain = refined - original
         if improvements:
-            self.improvements.setText("✓ " + "\n✓ ".join(improvements[:3]))
+            self.improvements.setText("- " + "\n- ".join(improvements[:3]))
         
         self.show()
 
@@ -3508,7 +3510,7 @@ class ClickableTaskCard(QFrame):
         
         layout = QHBoxLayout()
         
-        self.indicator = QLabel("⬜")
+        self.indicator = QLabel("  ")
         self.indicator.setFont(QFont("Segoe UI", 16))
         layout.addWidget(self.indicator)
         
@@ -3562,7 +3564,7 @@ class ClickableTaskCard(QFrame):
         self.selected = not self.selected
         self.setProperty("selected", self.selected)
         self.style().polish(self)
-        self.indicator.setText("✓" if self.selected else "⬜")
+        self.indicator.setText("+" if self.selected else "  ")
         self.toggled.emit(self.task.id, self.selected)
 
 
@@ -3875,7 +3877,7 @@ class MainWindow(QMainWindow):
         self.details_btn.setEnabled(False)
         hdr.addWidget(self.details_btn)
         
-        self.api_label = QLabel("⚪ READY")
+        self.api_label = QLabel(" READY")
         self.api_label.setStyleSheet("border: 1px solid #666; padding: 5px; border-radius: 3px;")
         hdr.addWidget(self.api_label)
         
@@ -3886,13 +3888,13 @@ class MainWindow(QMainWindow):
     
     def set_api_status(self, status: str, error: Optional[str] = None):
         if status == "online":
-            self.api_label.setText("🟢 ASI-1 ONLINE")
+            self.api_label.setText(" ASI-1 ONLINE")
             self.api_label.setStyleSheet("border: 1px solid #00ff00; padding: 5px; border-radius: 3px;")
         elif status == "error":
-            self.api_label.setText("🔴 ERROR")
+            self.api_label.setText(" ERROR")
             self.api_label.setStyleSheet("border: 1px solid #ff0000; padding: 5px; border-radius: 3px;")
         else:
-            self.api_label.setText("⚪ READY")
+            self.api_label.setText(" READY")
             self.api_label.setStyleSheet("border: 1px solid #666; padding: 5px; border-radius: 3px;")
     
     def show_system_details(self):
