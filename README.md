@@ -86,3 +86,38 @@ Project Significance
 Z-Engine demonstrates how AI systems can move beyond chat interfaces and operate as autonomous decision engines capable of analyzing real software environments, reasoning about improvements, and generating controlled automation workflows.
 
 This approach highlights a future direction where AI assists not only in answering questions but also in managing and optimizing complex computing systems
+
+
+|Quick Demo Flow|
+
+Launch the application
+
+pip install -r requirements.txt
+python main.py
+
+Run System Scan
+
+Click Scan to collect real-time system telemetry including CPU usage, memory utilization, storage status, and active processes.
+
+AI System Analysis
+
+Click Analyze to send the collected telemetry to the ASI-1 reasoning engine.
+The AI evaluates system health, identifies performance bottlenecks, and calculates stability metrics.
+
+Generate Optimization Strategy
+
+Click Generate Plan to allow the AI to design an optimization strategy.
+The engine produces categorized optimization tasks across domains such as memory management, disk optimization, and CPU performance.
+
+AI Self-Critique and Refinement
+
+The AI performs a second reasoning pass to critique its own strategy and refine the plan to reduce system risk and improve stability.
+
+Review Optimization Script
+
+The refined plan is converted into a PowerShell script.
+Users can inspect the script, export it, or prepare it for execution.
+
+Execute (Optional)
+
+If the user chooses to proceed, the script can be executed with administrator privileges through a controlled execution prompt.
