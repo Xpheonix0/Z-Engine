@@ -8,7 +8,9 @@ Modern operating systems produce extensive telemetry including CPU load, memory 
 These static approaches often apply generic optimizations that may be ineffective or potentially harmful depending on system state.
 
 --===========|
+
 2. Solution
+
 --===========|
 
 Z-Engine introduces an AI-driven optimization pipeline that analyzes system health, generates optimization strategies, critiques its own reasoning, and produces controlled automation scripts.
@@ -18,7 +20,9 @@ The engine uses system telemetry to determine targeted improvements rather than 
 This creates a closed-loop architecture combining analysis, reasoning, validation, and controlled execution.
 
 --===================|
+
 3. Key Capabilities
+
 --===================|
 
 AI-Based System Analysis
@@ -40,7 +44,9 @@ Interactive Dashboard
 A PySide6 interface visualizes system metrics, AI reasoning output, and optimization plans.
 
 --==================|
+
 4. System Workflow
+
 --==================|
 
 System Scan – Collects real-time telemetry including CPU usage, memory utilization, disk status, and active processes.
@@ -60,7 +66,9 @@ Script Generation – The refined strategy is converted into an executable Power
 Controlled Execution – Users can review, export, or execute the script with administrator confirmation.
 
 --====================|
+
 5. Design Principles
+
 --====================|
 
 • Telemetry-driven decision making
@@ -69,7 +77,9 @@ Controlled Execution – Users can review, export, or execute the script with ad
 • Risk-aware system modification
 
 --===================|
+
 6. Technology Stack
+
 --===================|
 
 Python
