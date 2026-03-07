@@ -1,8 +1,6 @@
-#!/usr/bin/env python3
 """
 Z-Engine: Generates, Engineers and Deploys
-Python 3.11+ / PySide6
-FINAL - Fixed All Issues + Secure API Key Handling
+Python 3.11+ / Pyside6
 """
 
 import sys
