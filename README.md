@@ -138,6 +138,3 @@ This multi-pass architecture demonstrates how AI models can function as autonomo
 
 
                      ||   Made by Dipanjan Dutta solo project  ||
-                           |==============================|
-                            For Api Innovate 2026 Hackathon
-                           |===============================|
