@@ -1,11 +1,15 @@
 ============|
+
 Z-Engine
+
 ============|
 
 AI-Driven System Optimization · Built by Dipanjan Dutta, Age 16
 
 ============|
+
 The Builder
+
 ============|
 
 I'm a 16-year-old self-taught developer from Bankura, West Bengal, India.
@@ -20,7 +24,9 @@ something better.
 Z-Engine is that something.
 
 ============|
+
 Problem
+
 ============|
 
 Modern operating systems produce extensive telemetry including CPU load,
@@ -32,7 +38,9 @@ These static approaches often apply generic optimizations that may be
 ineffective or potentially harmful depending on system state.
 
 =============|
+
 Solution
+
 =============|
 
 Z-Engine introduces an AI-driven optimization pipeline that analyzes system
@@ -46,7 +54,9 @@ This creates a closed-loop architecture combining analysis, reasoning,
 validation, and controlled execution.
 
 ====================|
+
 Key Capabilities
+
 ====================|
 
 AI-Based System Analysis
@@ -72,7 +82,9 @@ A PySide6 interface visualizes system metrics, AI reasoning output, and
 optimization plans in real time.
 
 ===================|
+
 Real World Result
+
 ===================|
 
 Tested on an Intel i3-7020U running Windows 11 23H2:
@@ -83,7 +95,9 @@ After Z-Engine:  3.4GB RAM at idle
 4.3GB freed. Autonomously. No manual intervention.
 
 ===================|
+
 System Workflow
+
 ===================|
 
 1. System Scan      – Collects real-time telemetry
@@ -96,7 +110,9 @@ System Workflow
 8. Controlled Execution – User reviews, exports, or runs with admin confirm
 
 =====================|
+
 Design Principles
+
 =====================|
 
 - Telemetry-driven decision making
@@ -105,13 +121,17 @@ Design Principles
 - Risk-aware system modification
 
 ====================|
+
 Technology Stack
+
 ====================|
 
 Python · PySide6 · psutil · ASI-1 API · PowerShell scripting
 
 ======================|
+
 Running the Project
+
 ======================|
 
 git clone https://github.com/Xpheonix0/Z-Engine
@@ -122,14 +142,12 @@ pip install -r requirements.txt
 set ASI_API_KEY=your-api-key-here
 python main.py
 
---- Linux / Mac ---
-export ASI_API_KEY=your-api-key-here
-python main.py
-
 Get your ASI-1 API key at: https://asi1.ai
 
 ===========================|
+
 Agentic AI Architecture
+
 ===========================|
 
 Z-Engine implements an agentic reasoning loop where the AI does not simply
@@ -141,11 +159,13 @@ This multi-pass architecture demonstrates how AI can function as an
 autonomous decision system — not a chatbot, but an engine.
 
 ========================|
+
 Traction & Recognition
+
 ========================|
 
 · Podium finish at IIT Bombay Techfest competing against university students
 · Submitted to 10+ international hackathons
 · Live demo validated on real consumer hardware
 
-          || Solo project by Dipanjan Dutta, 16, India ||
+          ||  Dipanjan Dutta, 16, India ||
