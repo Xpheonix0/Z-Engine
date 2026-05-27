@@ -12,9 +12,8 @@ The Builder
 
 ============|
 
-I'm a 16-year-old self-taught developer from Bankura, West Bengal, India.
-No coaching. No smartphone. Just YouTube, curiosity, and a PC that kept
-struggling under its own weight.
+I'm a 15 yrs old developer from purulia, West Bengal, India.
+
 
 One day I watched my system sit at 7.7GB RAM usage with a single Chrome
 tab open. Every optimization tool I tried applied the same generic fixes
@@ -163,8 +162,6 @@ autonomous decision system — not a chatbot, but an engine.
 Traction & Recognition
 
 ========================|
-
-· Podium finish at IIT Bombay Techfest competing against university students
 · Submitted to 10+ international hackathons
 · Live demo validated on real consumer hardware
 
